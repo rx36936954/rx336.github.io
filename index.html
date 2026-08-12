@@ -161,7 +161,7 @@ h1 {
 }
 
 /* =========================
-   媒体轮播区域 (自动播放，无按钮)
+   媒体轮播区域 (图片与视频翻页)
 ========================= */
 
 .media-box {
@@ -184,7 +184,7 @@ h1 {
 .media-slider {
     position: relative;
     width: 100%;
-    height: 450px; /* 固定高度，确保布局稳定 */
+    height: 450px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -197,18 +197,13 @@ h1 {
     left: 0;
     width: 100%;
     height: 100%;
-    opacity: 0; /* 初始隐藏 */
-    visibility: hidden;
-    display: flex;
+    display: none;
     justify-content: center;
     align-items: center;
-    transition: opacity 0.8s ease-in-out; /* 淡入淡出效果 */
 }
 
 .media-slide.active {
-    opacity: 1; /* 显示当前 */
-    visibility: visible;
-    z-index: 1;
+    display: flex;
 }
 
 .media-slide img,
@@ -219,18 +214,50 @@ h1 {
 
     height: 100%;
 
-    object-fit: contain; /* 保持比例，适应框内 */
+    object-fit: contain;
 
-    /* 统一滤镜效果，不再随鼠标变化以减少干扰 */
     filter:
         contrast(1.15)
         brightness(.75)
         saturate(.7);
+
+    transition: .3s;
 }
 
-/* 隐藏了原本的翻页按钮 */
+.media-slide img:hover,
+.media-slide video:hover {
+    filter:
+        contrast(1.2)
+        brightness(1)
+        saturate(1);
+}
+
+/* 翻页按钮样式 */
 .slider-btn {
-    display: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #ff2222;
+    color: #ff2222;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 18px;
+    z-index: 10;
+    transition: 0.2s;
+}
+
+.slider-btn:hover {
+    background: #ff2222;
+    color: #000;
+}
+
+.prev-btn {
+    left: 10px;
+}
+
+.next-btn {
+    right: 10px;
 }
 
 /* =========================
@@ -491,7 +518,7 @@ button:hover {
     }
 
     .media-slider {
-        height: 300px; /* 手机端适配高度 */
+        height: 300px;
     }
 }
 </style>
@@ -532,32 +559,31 @@ button:hover {
 
 
         <!-- =========================
-            媒体轮播区域 (自动播放)
+            媒体轮播区域 (图片与视频可翻页)
         ========================= -->
 
         <div class="media-box">
-            <div class="media-slider" id="mediaSlider">
-                <!-- 第1页：图片 -->
+            <div class="media-slider">
+                <!-- 第一页：图片 -->
                 <div class="media-slide active">
                     <img src="YOLOO-17-6.jpg" alt="警告画像1">
                 </div>
-                
-                <!-- 第2页：图片 (可替换路径) -->
+                <!-- 第二页：图片 (可根据需要修改路径) -->
                 <div class="media-slide">
                     <img src="YOLOO-17.jpg" alt="警告画像2">
                 </div>
-
-                <!-- 第3页：视频 (自动静音播放) -->
+                <!-- 第三页：视频 (可更换视频文件路径) -->
                 <div class="media-slide">
-                    <!-- 必须添加 muted 属性才能在大多数现代浏览器中自动播放 -->
-                    <video loop muted playsinline id="slideVideo">
+                    <video controls muted playsinline>
                         <source src="YOLOO-17.mp4" type="video/mp4">
                         お使いのブラウザは動画タグに対応していません。
                     </video>
                 </div>
-                
-                <!-- 可继续添加更多 <div class="media-slide">...</div> -->
             </div>
+
+            <!-- 左右切换按钮 -->
+            <button class="slider-btn prev-btn" onclick="changeSlide(-1)">&#10094;</button>
+            <button class="slider-btn next-btn" onclick="changeSlide(1)">&#10095;</button>
         </div>
 
 
@@ -666,43 +692,25 @@ button:hover {
 <script>
 
 /* =========================
-   自动轮播功能逻辑 (5秒切换)
+   轮播功能逻辑
 ========================= */
 
-const slides = document.querySelectorAll('.media-slide');
-const videoElement = document.getElementById('slideVideo');
 let currentSlide = 0;
-const slideInterval = 5000; // 5000毫秒 = 5秒
+const slides = document.querySelectorAll('.media-slide');
 
-function nextSlide() {
-    // 1. 隐藏当前
+function changeSlide(direction) {
+    // 切换前暂停当前正在播放的视频
+    const activeVideo = slides[currentSlide].querySelector('video');
+    if (activeVideo) {
+        activeVideo.pause();
+    }
+
     slides[currentSlide].classList.remove('active');
     
-    // 如果当前页有视频，强制暂停
-    const currentVideo = slides[currentSlide].querySelector('video');
-    if (currentVideo) {
-        currentVideo.pause();
-    }
-
-    // 2. 计算下一页索引
-    currentSlide = (currentSlide + 1) % slides.length;
+    currentSlide = (currentSlide + direction + slides.length) % slides.length;
     
-    // 3. 显示下一页
     slides[currentSlide].classList.add('active');
-
-    // 4. 如果新的一页是视频，自动播放（必须静音才能自动播）
-    const nextSlideElement = slides[currentSlide];
-    const videoInNextSlide = nextSlideElement.querySelector('video');
-    if (videoInNextSlide) {
-        videoInNextSlide.currentTime = 0; // 从头播放
-        videoInNextSlide.play().catch(error => {
-            console.log("自动播放失败，通常是因为用户未与页面交互:", error);
-        });
-    }
 }
-
-// 启动定时器
-let autoSlideShow = setInterval(nextSlide, slideInterval);
 
 
 /* =========================
@@ -710,16 +718,27 @@ let autoSlideShow = setInterval(nextSlide, slideInterval);
 ========================= */
 
 let time = 10;
-const countdown = document.getElementById("countdown");
+
+const countdown =
+    document.getElementById("countdown");
 
 const timer = setInterval(() => {
+
     time--;
+
     if (time <= 0) {
+
         clearInterval(timer);
+
         countdown.textContent = "00";
+
     } else {
-        countdown.textContent = String(time).padStart(2, "0");
+
+        countdown.textContent =
+            String(time).padStart(2, "0");
+
     }
+
 }, 1000);
 
 
@@ -727,4 +746,15 @@ const timer = setInterval(() => {
    停止按钮
 ========================= */
 
-function stop
+function stopSimulation() {
+
+    clearInterval(timer);
+
+    countdown.textContent = "停止";
+
+}
+
+</script>
+
+</body>
+</html>
