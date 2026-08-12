@@ -161,7 +161,7 @@ h1 {
 }
 
 /* =========================
-   媒体轮播区域 (图片与视频翻页)
+   媒体轮播区域
 ========================= */
 
 .media-box {
@@ -197,13 +197,18 @@ h1 {
     left: 0;
     width: 100%;
     height: 100%;
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    display: flex;
     justify-content: center;
     align-items: center;
+    transition: opacity 0.8s ease-in-out;
 }
 
 .media-slide.active {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    z-index: 1;
 }
 
 .media-slide img,
@@ -220,44 +225,35 @@ h1 {
         contrast(1.15)
         brightness(.75)
         saturate(.7);
-
-    transition: .3s;
 }
 
-.media-slide img:hover,
-.media-slide video:hover {
-    filter:
-        contrast(1.2)
-        brightness(1)
-        saturate(1);
+/* =========================
+   移到下方的左右翻页按钮区域
+========================= */
+
+.slider-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 15px auto 0;
+    width: min(600px, 100%);
+    padding: 0 5px;
 }
 
-/* 翻页按钮样式 */
 .slider-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
     border: 1px solid #ff2222;
     color: #ff2222;
-    padding: 10px 15px;
+    padding: 8px 25px;
     cursor: pointer;
     font-size: 18px;
-    z-index: 10;
     transition: 0.2s;
+    width: 120px;
 }
 
 .slider-btn:hover {
     background: #ff2222;
     color: #000;
-}
-
-.prev-btn {
-    left: 10px;
-}
-
-.next-btn {
-    right: 10px;
 }
 
 /* =========================
@@ -520,6 +516,11 @@ button:hover {
     .media-slider {
         height: 300px;
     }
+    
+    .slider-btn {
+        width: 100px;
+        padding: 6px 15px;
+    }
 }
 </style>
 </head>
@@ -559,7 +560,7 @@ button:hover {
 
 
         <!-- =========================
-            媒体轮播区域 (图片与视频可翻页)
+            媒体轮播区域 (图片与视频)
         ========================= -->
 
         <div class="media-box">
@@ -568,22 +569,24 @@ button:hover {
                 <div class="media-slide active">
                     <img src="YOLOO-17-6.jpg" alt="警告画像1">
                 </div>
-                <!-- 第二页：图片 (可根据需要修改路径) -->
+                <!-- 第二页：图片 -->
                 <div class="media-slide">
                     <img src="YOLOO-17.jpg" alt="警告画像2">
                 </div>
-                <!-- 第三页：视频 (可更换视频文件路径) -->
+                <!-- 第三页：视频 -->
                 <div class="media-slide">
-                    <video controls muted playsinline>
+                    <video loop muted playsinline>
                         <source src="YOLOO-17.mp4" type="video/mp4">
                         お使いのブラウザは動画タグに対応していません。
                     </video>
                 </div>
             </div>
+        </div>
 
-            <!-- 左右切换按钮 -->
-            <button class="slider-btn prev-btn" onclick="changeSlide(-1)">&#10094;</button>
-            <button class="slider-btn next-btn" onclick="changeSlide(1)">&#10095;</button>
+        <!-- 移到下方的左右切换按钮 (对应您截图中标出的绿色框位置) -->
+        <div class="slider-controls">
+            <button class="slider-btn prev-btn" onclick="manualChangeSlide(-1)">&#10094;</button>
+            <button class="slider-btn next-btn" onclick="manualChangeSlide(1)">&#10095;</button>
         </div>
 
 
@@ -667,7 +670,7 @@ button:hover {
         ========================= -->
 
         <a
-            href="https://t.me/your_username"
+            href="https://t.me/jpjpjp14"
             target="_blank"
             rel="noopener noreferrer"
             class="telegram-button"
@@ -692,14 +695,15 @@ button:hover {
 <script>
 
 /* =========================
-   轮播功能逻辑
+   轮播功能逻辑（支持自动轮播 + 底部按钮手动点击）
 ========================= */
 
 let currentSlide = 0;
 const slides = document.querySelectorAll('.media-slide');
+let slideInterval;
 
-function changeSlide(direction) {
-    // 切换前暂停当前正在播放的视频
+function showSlide(index) {
+    // 暂停当前正在播放的视频
     const activeVideo = slides[currentSlide].querySelector('video');
     if (activeVideo) {
         activeVideo.pause();
@@ -707,10 +711,41 @@ function changeSlide(direction) {
 
     slides[currentSlide].classList.remove('active');
     
-    currentSlide = (currentSlide + direction + slides.length) % slides.length;
+    currentSlide = (index + slides.length) % slides.length;
     
     slides[currentSlide].classList.add('active');
+
+    // 如果新的一页是视频，自动播放
+    const newVideo = slides[currentSlide].querySelector('video');
+    if (newVideo) {
+        newVideo.currentTime = 0;
+        newVideo.play().catch(e => console.log("Auto play prevented", e));
+    }
 }
+
+// 自动下一页
+function nextSlide() {
+    showSlide(currentSlide + 1);
+}
+
+// 手动点击底部按钮时触发（同时重置5秒自动计时）
+function manualChangeSlide(direction) {
+    showSlide(currentSlide + direction);
+    resetTimer();
+}
+
+// 启动自动轮播定时器（每5秒）
+function startTimer() {
+    slideInterval = setInterval(nextSlide, 5000);
+}
+
+function resetTimer() {
+    clearInterval(slideInterval);
+    startTimer();
+}
+
+// 页面加载后开始自动轮播
+startTimer();
 
 
 /* =========================
